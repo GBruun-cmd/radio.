@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Radio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e; --card: #181818; --border: #2a2a2a;
+    --accent: #e8c87a; --text: #f0ece4; --muted: #666;
+    --active-bg: #1e1a10; --active-border: #e8c87a;
+  }
+
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; padding: 24px 16px;
+  }
+
+  header { text-align: center; margin-bottom: 48px; }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.4rem, 8vw, 4rem);
+    letter-spacing: -0.02em; color: var(--text); line-height: 1;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+
+  .subtitle {
+    margin-top: 8px; font-size: 0.72rem; color: var(--muted);
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+
+  .stations { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 480px; }
+
+  .station {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 6px; padding: 18px 20px;
+    display: flex; align-items: center; gap: 16px;
+    cursor: pointer; transition: border-color 0.2s, background 0.2s;
+    user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .station:hover { border-color: #444; }
+  .station.active { background: var(--active-bg); border-color: var(--active-border); }
+
+  .play-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--border); display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0; transition: background 0.2s;
+  }
+  .station.active .play-btn,
+  .station.loading .play-btn { background: var(--accent); }
+
+  .play-icon {
+    width: 0; height: 0; border-style: solid;
+    border-width: 7px 0 7px 13px;
+    border-color: transparent transparent transparent var(--muted);
+    margin-left: 3px;
+  }
+  .station.active .play-icon,
+  .station.loading .play-icon { display: none; }
+
+  .pause-icon { display: none; gap: 4px; }
+  .station.active .pause-icon { display: flex; }
+
+  .pause-bar { width: 4px; height: 14px; background: var(--bg); border-radius: 2px; }
+
+  .spinner {
+    display: none; width: 14px; height: 14px;
+    border: 2px solid transparent; border-top-color: var(--bg);
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+  }
+  .station.loading .spinner { display: block; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .info { flex: 1; min-width: 0; }
+  .name { font-family: 'DM Serif Display', serif; font-size: 1.15rem; color: var(--text); letter-spacing: -0.01em; }
+  .desc { font-size: 0.68rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+
+  .live-dot {
+    display: none; align-items: center; gap: 5px;
+    font-size: 0.65rem; color: var(--accent);
+    letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0;
+  }
+  .station.active .live-dot { display: flex; }
+
+  .dot {
+    width: 6px; height: 6px; background: var(--accent);
+    border-radius: 50%; animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  footer {
+    margin-top: 48px; font-size: 0.65rem; color: var(--muted);
+    letter-spacing: 0.08em; text-align: center; line-height: 1.8;
+  }
+
+  audio { display: none; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lyt til <em>Radio</em></h1>
+  <p class="subtitle">Direkte stream · Ingen reklamer</p>
+</header>
+
+<div class="stations">
+
+  <div class="station" data-streams='["http://live-icy.gss.dr.dk/A/A11H.mp3"]' data-name="DR P4 Sjælland">
+    <div class="play-btn">
+      <div class="play-icon"></div>
+      <div class="pause-icon"><div class="pause-bar"></div><div class="pause-bar"></div></div>
+      <div class="spinner"></div>
+    </div>
+    <div class="info">
+      <div class="name">DR P4 Sjælland</div>
+      <div class="desc">Nyheder · underholdning · lokal</div>
+    </div>
+    <div class="live-dot"><div class="dot"></div>LIVE</div>
+  </div>
+
+  <div class="station" data-streams='["https://stream.probroadcast.dk/kalundborgmp3"]' data-name="Radio SLR">
+    <div class="play-btn">
+      <div class="play-icon"></div>
+      <div class="pause-icon"><div class="pause-bar"></div><div class="pause-bar"></div></div>
+      <div class="spinner"></div>
+    </div>
+    <div class="info">
+      <div class="name">Radio SLR</div>
+      <div class="desc">Pop · hits · lokal Sjælland</div>
+    </div>
+    <div class="live-dot"><div class="dot"></div>LIVE</div>
+  </div>
+
+  <div class="station" data-streams='[]' data-rbname="Pop FM" data-rbcountry="DK" data-name="Pop FM">
+    <div class="play-btn">
+      <div class="play-icon"></div>
+      <div class="pause-icon"><div class="pause-bar"></div><div class="pause-bar"></div></div>
+      <div class="spinner"></div>
+    </div>
+    <div class="info">
+      <div class="name">Pop FM</div>
+      <div class="desc">Pop · Top 40 · hits</div>
+    </div>
+    <div class="live-dot"><div class="dot"></div>LIVE</div>
+  </div>
+
+  <div class="station" data-streams='["http://streammp3.retro-radio.dk/retro-mp3","http://stream128.retro-radio.dk/retro"]' data-name="Retro Radio">
+    <div class="play-btn">
+      <div class="play-icon"></div>
+      <div class="pause-icon"><div class="pause-bar"></div><div class="pause-bar"></div></div>
+      <div class="spinner"></div>
+    </div>
+    <div class="info">
+      <div class="name">Retro Radio</div>
+      <div class="desc">60'erne · 70'erne · 80'erne</div>
+    </div>
+    <div class="live-dot"><div class="dot"></div>LIVE</div>
+  </div>
+
+</div>
+
+<footer>
+  Spiller direkte fra stationernes egne streams<br>
+  Tryk på en kanal for at starte · tryk igen for at stoppe
+</footer>
+
+<audio id="player" preload="none"></audio>
+
+<script>
+  const player = document.getElementById('player');
+  let activeStation = null;
+
+  // Hent stream fra Radio Browser (kører i browseren — ingen server-blokering)
+  async function lookupFromRadioBrowser(name, country) {
+    const servers = ['de1.api.radio-browser.info', 'nl1.api.radio-browser.info', 'at1.api.radio-browser.info'];
+    for (const server of servers) {
+      try {
+        const countryParam = country ? `&countrycode=${country}` : '';
+        const url = `https://${server}/json/stations/search?name=${encodeURIComponent(name)}${countryParam}&limit=20&order=votes&reverse=true&hidebroken=true`;
+        const res = await fetch(url, { headers: { 'User-Agent': 'DanishRadioPlayer/1.0' } });
+        if (!res.ok) continue;
+        const stations = await res.json();
+        if (!stations.length) continue;
+        // Foretrækker HTTPS
+        const best = stations.find(s => s.url_resolved?.startsWith('https'))
+                  || stations.find(s => s.url_resolved)
+                  || stations[0];
+        return best.url_resolved || best.url;
+      } catch (e) { /* prøv næste server */ }
+    }
+    return null;
+  }
+
+  // Prøv en URL — returnerer true hvis den kan afspilles
+  function tryPlay(url) {
+    return new Promise(resolve => {
+      const tmp = new Audio();
+      tmp.preload = 'none';
+      tmp.src = url;
+      const done = (ok) => {
+        tmp.src = '';
+        resolve(ok ? url : null);
+      };
+      // Giv det 4 sekunder
+      const timer = setTimeout(() => done(false), 4000);
+      tmp.oncanplay = () => { clearTimeout(timer); done(true); };
+      tmp.onerror = () => { clearTimeout(timer); done(false); };
+      tmp.load();
+    });
+  }
+
+  async function findWorkingStream(station) {
+    const hardcoded = JSON.parse(station.dataset.streams || '[]');
+
+    // Prøv hardcodede URLs én efter én
+    for (const url of hardcoded) {
+      const ok = await tryPlay(url);
+      if (ok) return ok;
+    }
+
+    // Fallback: Radio Browser API
+    if (station.dataset.rbname) {
+      const rbUrl = await lookupFromRadioBrowser(station.dataset.rbname, station.dataset.rbcountry);
+      if (rbUrl) return rbUrl;
+    }
+
+    return null;
+  }
+
+  async function playStation(station) {
+    // Klik på aktiv = stop
+    if (activeStation === station && !station.classList.contains('loading')) {
+      player.pause();
+      player.src = '';
+      station.classList.remove('active', 'loading');
+      activeStation = null;
+      return;
+    }
+
+    // Stop evt. anden
+    if (activeStation) {
+      player.pause();
+      player.src = '';
+      activeStation.classList.remove('active', 'loading');
+    }
+
+    activeStation = station;
+    station.classList.remove('active');
+    station.classList.add('loading');
+
+    try {
+      // Brug cachet URL hvis vi allerede har fundet en
+      let url = station.dataset.resolvedStream;
+
+      if (!url) {
+        // Hurtig sti: prøv hardcodede streams direkte i player uden canplay-test
+        const hardcoded = JSON.parse(station.dataset.streams || '[]');
+        if (hardcoded.length > 0) {
+          url = hardcoded[0]; // Prøv første direkte
+        }
+      }
+
+      if (!url && station.dataset.rbname) {
+        url = await lookupFromRadioBrowser(station.dataset.rbname, station.dataset.rbcountry);
+      }
+
+      if (!url) throw new Error('Ingen stream fundet');
+
+      player.src = url;
+      await player.play();
+
+      // Gem til næste gang
+      station.dataset.resolvedStream = url;
+      station.classList.remove('loading');
+      station.classList.add('active');
+
+    } catch (err) {
+      // Hvis første URL fejler, prøv fallbacks
+      const hardcoded = JSON.parse(station.dataset.streams || '[]').slice(1); // skip første
+      let worked = false;
+
+      for (const fallbackUrl of hardcoded) {
+        try {
+          player.src = fallbackUrl;
+          await player.play();
+          station.dataset.resolvedStream = fallbackUrl;
+          station.classList.remove('loading');
+          station.classList.add('active');
+          worked = true;
+          break;
+        } catch (e) { /* prøv næste */ }
+      }
+
+      if (!worked) {
+        // Prøv Radio Browser som allersidste udvej
+        if (station.dataset.rbname && !station.dataset.rbTried) {
+          station.dataset.rbTried = '1';
+          try {
+            const rbUrl = await lookupFromRadioBrowser(station.dataset.rbname, station.dataset.rbcountry);
+            if (rbUrl) {
+              player.src = rbUrl;
+              await player.play();
+              station.dataset.resolvedStream = rbUrl;
+              station.classList.remove('loading');
+              station.classList.add('active');
+              worked = true;
+            }
+          } catch (e) {}
+        }
+      }
+
+      if (!worked) {
+        console.error('Alle streams fejlede');
+        station.classList.remove('loading', 'active');
+        activeStation = null;
+        alert(`Kunne ikke starte "${station.dataset.name}".\n\nStationen blokerer muligvis direkte streams.\nProblemer? Rapportér til Jean Claude.`);
+      }
+    }
+  }
+
+  document.querySelectorAll('.station').forEach(s => {
+    s.addEventListener('click', () => playStation(s));
+  });
+
+  player.addEventListener('error', () => {
+    if (activeStation) {
+      activeStation.classList.remove('active', 'loading');
+      activeStation = null;
+    }
+  });
+</script>
+</body>
+</html>
